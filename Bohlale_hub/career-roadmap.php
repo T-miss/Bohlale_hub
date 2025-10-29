@@ -1,11 +1,11 @@
 <?php
-// Connect to DB
+// Database connection
 $conn = new mysqli("localhost", "root", "", "bohlale_hub");
 if ($conn->connect_error) {
     die("DB Connection failed: " . $conn->connect_error);
 }
 
-// Handle Add Milestone
+// Add milestone
 if (isset($_POST['addMilestone'])) {
     $title = $conn->real_escape_string($_POST['milestoneTitle']);
     if (!empty($title)) {
@@ -15,7 +15,7 @@ if (isset($_POST['addMilestone'])) {
     exit;
 }
 
-// Handle Remove Milestone
+// Delete milestone
 if (isset($_GET['delete'])) {
     $id = intval($_GET['delete']);
     $conn->query("DELETE FROM milestones WHERE id=$id");
@@ -37,91 +37,231 @@ while ($row = $result->fetch_assoc()) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Career Roadmaps</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+
 <style>
-  body { font-family: 'Inter', sans-serif; background: #f4f7fa; margin: 0; }
-  main { padding: 2rem; }
+:root {
+  --bg: #E8DFF0;
+  --accent1: #ff2b7d;
+  --accent2: #b14b7f;
+  --deep: #000000;
+  --glass: rgba(255,255,255,0.12);
+}
 
-  .features h2 { font-size: 2rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-  .features p { margin-bottom: 1rem; color: #555; }
+body {
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(135deg, var(--bg), #fff);
+  margin: 0;
+  color: var(--deep);
+  transition: all 0.3s ease;
+}
 
-  .roadmap { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
-  .milestone { background: #fff; padding: 1rem; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; transition: transform 0.2s; }
-  .milestone:hover { transform: translateY(-3px); }
-  .milestone h3 { margin: 0; color: #007bff; }
+main { padding: 2rem; max-width: 900px; margin: auto; }
 
-  .btn { padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-  .btn-add { background: #28a745; color: #fff; }
-  .btn-add:hover { background: #218838; }
-  .btn-download { background: #007bff; color: #fff; }
-  .btn-download:hover { background: #0056b3; }
-  .btn-remove { background: #dc3545; color: #fff; margin-left: 0.5rem; }
-  .btn-remove:hover { background: #c82333; }
+.features h2 {
+  font-size: 2.2rem;
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  animation: fadeIn 1.2s ease;
+}
+.features p { margin-bottom: 1rem; color: #333; }
 
-  .progress-container { background: #e0e0e0; border-radius: 15px; overflow: hidden; margin-top: 1rem; }
-  .progress-bar { height: 20px; background: #007bff; width: 0%; text-align: center; color: #fff; line-height: 20px; font-size: 0.9rem; transition: width 0.5s; }
+.roadmap {
+  display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;
+}
+
+.milestone {
+  background: var(--glass);
+  backdrop-filter: blur(10px);
+  padding: 1rem 1.5rem;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+.milestone:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+
+.milestone h3 {
+  margin: 0;
+  color: var(--accent2);
+  font-weight: 600;
+}
+
+.btn {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+.btn-add {
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  color: #fff;
+}
+.btn-add:hover { opacity: 0.9; }
+.btn-download {
+  background: #007bff;
+  color: #fff;
+}
+.btn-remove {
+  background: #dc3545;
+  color: #fff;
+}
+.btn-remove:hover {
+  transform: scale(1.05);
+}
+
+.progress-container {
+  background: #ddd;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-top: 2rem;
+}
+.progress-bar {
+  height: 22px;
+  background: linear-gradient(90deg, var(--accent1), var(--accent2));
+  width: 0%;
+  color: #fff;
+  font-size: 0.9rem;
+  text-align: center;
+  line-height: 22px;
+  border-radius: 20px;
+  transition: width 0.6s ease;
+}
+
+.add-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+}
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  text-align: center;
+  width: 90%;
+  max-width: 400px;
+}
+.modal-content input {
+  width: 80%;
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  margin-top: 1rem;
+}
+.modal-content .btn { margin-top: 1rem; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>
 </head>
 <body>
-<header class="site-header">
-  <div class="container header-inner">
-    <div class="brand"><div class="logo-mark"></div><span class="brand-title">Student Portal</span></div>
-    <nav class="main-nav">
-      <a href="index.php" class="nav-item">Home</a>
-      <button class="burger" id="burgerBtn" aria-label="Open menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
-    </nav>
-    <div class="mobile-menu" id="mobileMenu"><a href="index.php">Home</a></div>
-  </div>
-</header>
 
 <main>
 <section class="features">
-  <h2>Career Roadmaps 🛣️</h2>
-  <p>Plan your career with step-by-step guidance and visualize milestones for your dream job.</p>
+  <h2>Career Roadmap 🛣️</h2>
+  <p>Visualize and celebrate each step of your professional journey!</p>
 
-  <!-- Add Milestone -->
-  <form method="POST" style="margin-bottom:1rem;">
-    <input type="text" name="milestoneTitle" placeholder="Enter milestone..." required>
-    <button type="submit" name="addMilestone" class="btn btn-add">Add Milestone</button>
-    <a href="download.php" class="btn btn-download">Download Roadmap PDF</a>
-  </form>
+  <button class="btn btn-add" id="openModal">+ Add Milestone</button>
+  <a href="download.php" class="btn btn-download">📥 Download PDF</a>
+
+  <!-- Modal -->
+  <div class="add-modal" id="addModal">
+    <div class="modal-content">
+      <h3>Add a New Milestone</h3>
+      <form method="POST">
+        <input type="text" name="milestoneTitle" placeholder="Enter milestone..." required>
+        <br>
+        <button type="submit" name="addMilestone" class="btn btn-add">Save</button>
+        <button type="button" class="btn btn-remove" id="closeModal">Cancel</button>
+      </form>
+    </div>
+  </div>
 
   <!-- Milestones -->
   <div class="roadmap" id="roadmap">
     <?php foreach ($milestones as $m): ?>
     <div class="milestone">
-      <h3><?= htmlspecialchars($m['title']) ?></h3>
+      <div>
+        <input type="checkbox" class="milestone-check">
+        <h3><?= htmlspecialchars($m['title']) ?></h3>
+      </div>
       <a href="career-roadmap.php?delete=<?= $m['id'] ?>" class="btn btn-remove">Remove</a>
     </div>
     <?php endforeach; ?>
   </div>
 
-  <!-- Progress -->
   <div class="progress-container">
     <div class="progress-bar" id="progressBar">0%</div>
   </div>
 </section>
 </main>
 
-<footer class="site-footer">
-  <div class="container footer-bottom"><small>© <span id="year"></span> Student Portal</small></div>
-</footer>
-
 <script>
-document.getElementById("year").textContent = new Date().getFullYear();
+// Modal controls
+const modal = document.getElementById('addModal');
+document.getElementById('openModal').onclick = () => modal.style.display = 'flex';
+document.getElementById('closeModal').onclick = () => modal.style.display = 'none';
+window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; }
 
-// Update Progress
+// Progress bar updates
 function updateProgress() {
-  const milestones = document.querySelectorAll('.roadmap .milestone');
-  const completed = milestones.length;
-  const progressPercent = milestones.length ? Math.min(100, completed / 5 * 100) : 0;
+  const checks = document.querySelectorAll('.milestone-check');
+  const total = checks.length;
+  const done = [...checks].filter(c => c.checked).length;
+  const percent = total ? (done / total) * 100 : 0;
   const bar = document.getElementById('progressBar');
-  bar.style.width = progressPercent + '%';
-  bar.textContent = Math.round(progressPercent) + '%';
+  bar.style.width = percent + '%';
+  bar.textContent = Math.round(percent) + '%';
+  if (percent === 100) triggerConfetti();
 }
+
+// Confetti animation
+function triggerConfetti() {
+  const duration = 1200;
+  const end = Date.now() + duration;
+  const colors = ['#ff2b7d', '#b14b7f', '#007bff'];
+  (function frame() {
+    const timeLeft = end - Date.now();
+    if (timeLeft <= 0) return;
+    const particle = document.createElement('div');
+    particle.style.position = 'fixed';
+    particle.style.left = Math.random() * 100 + '%';
+    particle.style.top = '-10px';
+    particle.style.width = '8px';
+    particle.style.height = '8px';
+    particle.style.background = colors[Math.floor(Math.random()*colors.length)];
+    particle.style.borderRadius = '50%';
+    particle.style.opacity = 0.8;
+    document.body.appendChild(particle);
+    const fall = particle.animate([
+      { transform: `translateY(0)` },
+      { transform: `translateY(${window.innerHeight}px)` }
+    ], { duration: 1000 + Math.random() * 1000 });
+    fall.onfinish = () => particle.remove();
+    requestAnimationFrame(frame);
+  })();
+}
+
+// Event listener
+document.querySelectorAll('.milestone-check').forEach(c => {
+  c.addEventListener('change', updateProgress);
+});
 updateProgress();
 </script>
+
 </body>
 </html>

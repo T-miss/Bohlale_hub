@@ -1,9 +1,12 @@
-<!-- Header -->
+<!-- Header --> 
 <header class="site-header">
   <div class="container header-inner">
     <div class="brand">
-      <div class="logo-mark" aria-hidden="true"></div>
-      <span class="brand-title">Student Portal</span>
+      <img src="https://image2url.com/images/1760714493363-e0fbca59-5907-44cc-b416-2406a998e9f3.jpeg" 
+           alt="Student Portal Logo" 
+           class="logo-mark">
+      
+      <span class="brand-title">BOHLALE HUB</span>
     </div>
 
     <nav class="main-nav" aria-label="Primary navigation">

@@ -27,7 +27,7 @@ if($_SERVER["REQUEST_METHOD"]=="POST"){
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Student Portal — Login</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="styyle.css">
 <style>
 .auth-overlay { position: fixed; inset:0; background: rgba(0,0,0,0.6); display:flex; justify-content:center; align-items:center; z-index:100; }
 .auth-container { background: rgba(255,255,255,0.12); backdrop-filter: blur(20px); padding:32px 26px; border-radius:22px; width:360px; max-width:90%; color:#fff; text-align:center; box-shadow:0 16px 36px rgba(0,0,0,0.25); }

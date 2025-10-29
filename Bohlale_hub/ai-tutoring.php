@@ -5,176 +5,244 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Intelligent Tutoring</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
 <style>
-body { font-family: 'Inter', sans-serif; background: #f4f7fa; margin: 0; }
-header { display: flex; align-items: center; padding: 1rem; background: #007bff; color: #fff; }
-header .back { cursor: pointer; margin-right: 1rem; font-size: 1.5rem; }
-main { padding: 2rem; }
-.features h2 { font-size: 2rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-.features p { margin-bottom: 1rem; color: #fff; background: #007bff; padding: 0.5rem 1rem; border-radius: 8px; display: inline-block; }
-.question-container { margin-top: 1rem; }
-.question { background: #fff; padding: 1rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-.question h3 { margin: 0 0 0.5rem 0; color: #007bff; }
-.hint { color: #28a745; cursor: pointer; text-decoration: underline; display: inline-block; margin-top: 0.5rem; }
-.hint-text { display: none; color: #555; margin-top: 0.5rem; font-style: italic; }
-.answer { margin-top: 0.5rem; color: #333; font-weight: 500; display: none; }
-.student-input { width: 100%; padding: 0.5rem; margin-top: 0.5rem; border-radius: 8px; border: 1px solid #ccc; }
-.btn { padding: 0.5rem 1rem; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-.btn-start { background: #007bff; color: #fff; margin-top: 1rem; }
-.btn-start:hover { background: #0056b3; }
-.btn-complete { background: #28a745; color: #fff; margin-top: 0.5rem; }
-.btn-complete:hover { background: #218838; }
-.btn-check { background: #ffc107; color: #fff; margin-top: 0.5rem; }
-.btn-check:hover { background: #e0a800; }
-.btn-download { background: #6f42c1; color: #fff; margin-top: 1rem; }
-.btn-download:hover { background: #5936a2; }
-.progress-container { background: #e0e0e0; border-radius: 15px; overflow: hidden; margin-top: 1rem; }
-.progress-bar { height: 20px; background: #28a745; width: 0%; text-align: center; color: #fff; line-height: 20px; font-size: 0.9rem; transition: width 0.5s; }
+:root{
+  --bg:#E8DFF0;
+  --accent1:#ff2b7d;
+  --accent2:#b14b7f;
+  --deep:#2b0028;
+  --glass: rgba(255,255,255,0.14);
+  --container-width:1100px;
+  --radius:20px;
+  font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+body{
+  margin:0;
+  background: linear-gradient(180deg,var(--bg), #f7eef8 60%);
+  color: var(--deep);
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+}
+
+header{
+  position:sticky;
+  top:0;
+  background:var(--glass);
+  padding:1rem 2rem;
+  backdrop-filter: blur(10px);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  z-index:10;
+}
+header .back{
+  cursor:pointer;
+  font-size:1.5rem;
+  font-weight:700;
+  color:var(--accent1);
+}
+header h1{margin:0; font-size:1.6rem; font-weight:700; color:var(--deep);}
+
+main.container{
+  flex:1;
+  width:min(94%, var(--container-width));
+  margin:2rem auto;
+}
+
+.features h2{
+  font-size:2rem;
+  color:var(--accent1);
+  margin-bottom:0.5rem;
+}
+.features p{
+  background:var(--accent1);
+  color:#fff;
+  padding:0.5rem 1rem;
+  border-radius:12px;
+  display:inline-block;
+  margin-bottom:1rem;
+}
+
+.question-container{margin-top:1.5rem;}
+.question{
+  background:#fff;
+  padding:1.5rem;
+  border-radius:var(--radius);
+  box-shadow:0 4px 15px rgba(0,0,0,0.1);
+  margin-bottom:1rem;
+  transition: transform 0.3s;
+}
+.question h3{margin:0 0 0.5rem 0; color:var(--accent1);}
+.hint{color:var(--accent2); cursor:pointer; text-decoration:underline; display:inline-block; margin-top:0.5rem;}
+.hint-text{display:none; color:#555; margin-top:0.5rem; font-style:italic;}
+.student-input{
+  width:100%;
+  padding:0.6rem;
+  margin-top:0.5rem;
+  border-radius:12px;
+  border:1px solid #ccc;
+}
+.btn{
+  padding:0.6rem 1rem;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:600;
+  transition:0.2s;
+  margin-top:0.5rem;
+}
+.btn-check{background:var(--accent2); color:#fff;}
+.btn-check:hover{background:var(--accent1);}
+.btn-next{background:#28a745; color:#fff;}
+.btn-next:hover{background:#218838;}
+.progress-container{
+  background:#e0e0e0;
+  border-radius:20px;
+  overflow:hidden;
+  height:24px;
+  margin-top:1rem;
+}
+.progress-bar{
+  height:24px;
+  width:0%;
+  background:var(--accent1);
+  color:#fff;
+  text-align:center;
+  line-height:24px;
+  font-weight:600;
+  transition:width 0.5s;
+}
+footer{
+  text-align:center;
+  padding:1.5rem;
+  background:var(--accent2);
+  color:#fff;
+  border-radius:var(--radius);
+  margin-top:auto;
+}
 </style>
 </head>
 <body>
 
 <header>
-  <span class="back" onclick="goBack()">←</span>
-  <h1>Intelligent Tutoring</h1>
+  
+  <h1>Bohlale hub</h1>
 </header>
 
-<main>
-<section class="features">
+<main class="container features">
   <h2>AI-Powered Tutoring 🧠</h2>
-  <p>Answer the questions below. Use hints if needed. Check your answers and track your progress.</p>
-  <button class="btn btn-start" onclick="startTutoring()">Start Tutoring</button>
+  <p>Answer each question. Use hints if needed. Only proceed after a correct answer!</p>
+  <button class="btn btn-check" onclick="startTutoring()">Start Tutoring</button>
 
-  <div class="question-container" id="questionContainer" style="display:none;"></div>
+  <div class="question-container" id="questionContainer"></div>
 
   <div class="progress-container">
     <div class="progress-bar" id="progressBar">0%</div>
   </div>
-
-  <button class="btn btn-download" onclick="downloadSession()">Download Session Summary</button>
-</section>
 </main>
 
 <footer class="site-footer">
-  <div class="container footer-bottom"><small>© <span id="year"></span> Student Portal</small></div>
+  <div>© <span id="year"></span> Student Portal</div>
 </footer>
 
 <script>
 document.getElementById("year").textContent = new Date().getFullYear();
 
-// Back button
-function goBack() { window.location.href = "dashboard.php"; }
+function goBack(){ window.location.href='dashboard.php'; }
 
-// Load questions and previous answers
-async function startTutoring() {
+// Sample questions
+let questions = [
+  {id:1, question_text:"What is 2 + 2?", answer_text:"4", hint_text:"It's the same as 2*2."},
+  {id:2, question_text:"What is the capital of France?", answer_text:"Paris", hint_text:"It's also called the city of love."},
+  {id:3, question_text:"Which color mixes with blue to make green?", answer_text:"Yellow", hint_text:"Think primary colors."},
+  {id:4, question_text:"What gas do we breathe in?", answer_text:"Oxygen", hint_text:"Essential for life."},
+  {id:5, question_text:"How many continents are there?", answer_text:"7", hint_text:"Between 5 and 10."},
+  
+  // 10 extra questions
+  {id:6, question_text:"What is the largest planet in our solar system?", answer_text:"Jupiter", hint_text:"It's a gas giant."},
+  {id:7, question_text:"Who wrote 'Romeo and Juliet'?", answer_text:"Shakespeare", hint_text:"Famous English playwright."},
+  {id:8, question_text:"What is H2O commonly known as?", answer_text:"Water", hint_text:"Essential for life."},
+  {id:9, question_text:"What is 10 squared?", answer_text:"100", hint_text:"10*10."},
+  {id:10, question_text:"Which ocean is the largest?", answer_text:"Pacific", hint_text:"It covers more than 30% of Earth's surface."},
+  {id:11, question_text:"What is the freezing point of water in Celsius?", answer_text:"0", hint_text:"At 0 degrees it turns to ice."},
+  {id:12, question_text:"What is the chemical symbol for gold?", answer_text:"Au", hint_text:"It comes from the Latin 'Aurum'."},
+  {id:13, question_text:"How many hours are in a day?", answer_text:"24", hint_text:"Think of the rotation of Earth."},
+  {id:14, question_text:"Which planet is known as the Red Planet?", answer_text:"Mars", hint_text:"It's the fourth planet from the Sun."},
+  {id:15, question_text:"What is the largest mammal?", answer_text:"Blue Whale", hint_text:"It lives in the ocean and can grow up to 30 meters long."}
+];
+
+let currentQuestion = 0;
+let studentAnswers = {};
+
+function startTutoring(){
+  currentQuestion = 0;
+  showQuestion();
+}
+
+function showQuestion(){
   const container = document.getElementById('questionContainer');
   container.innerHTML = '';
-  container.style.display = 'block';
-
-  const response = await fetch('fetch_questions.php');
-  const questions = await response.json();
-
-  const savedResponse = await fetch('load_answers.php');
-  const savedAnswers = await savedResponse.json();
-
-  questions.forEach((item, index) => {
-    const div = document.createElement('div');
-    div.className = 'question';
-    div.dataset.id = item.id;
-
-    let studentAnswer = savedAnswers[item.id] ? savedAnswers[item.id].student_answer : '';
-    let completed = savedAnswers[item.id] ? savedAnswers[item.id].completed : 0;
-
-    div.innerHTML = `
-      <h3>Q${index+1}: ${item.question_text}</h3>
-      <span class="hint" onclick="toggleHint(this)">Show Hint</span>
-      <div class="hint-text">${item.hint_text}</div>
-      <input type="text" class="student-input" placeholder="Type your answer here..." value="${studentAnswer}">
-      <button class="btn btn-check" onclick="checkAnswer(this)" ${completed ? 'disabled' : ''}>Check Answer</button>
-      <div class="answer">${item.answer_text}</div>
-      <button class="btn btn-complete" onclick="completeQuestion(this)" style="display:${completed ? 'inline-block' : 'none'};">Mark Complete</button>
-    `;
-    container.appendChild(div);
-  });
-
-  updateProgress();
+  const q = questions[currentQuestion];
+  const div = document.createElement('div');
+  div.className='question';
+  div.innerHTML=`
+    <h3>Q${currentQuestion+1}: ${q.question_text}</h3>
+    <span class="hint" onclick="toggleHint(this)">Show Hint</span>
+    <div class="hint-text">${q.hint_text}</div>
+    <input type="text" class="student-input" placeholder="Type your answer here..." value="${studentAnswers[q.id]||''}">
+    <button class="btn btn-check" onclick="checkAnswer(this)">Check Answer</button>
+    <button class="btn btn-next" style="display:none" onclick="nextQuestion()">Next Question →</button>
+  `;
+  container.appendChild(div);
 }
 
-// Toggle hint visibility
-function toggleHint(elem) {
-  const hintText = elem.nextElementSibling;
-  if(hintText.style.display === 'block') { hintText.style.display = 'none'; elem.textContent = 'Show Hint'; }
-  else { hintText.style.display = 'block'; elem.textContent = 'Hide Hint'; }
+function toggleHint(elem){
+  const hint = elem.nextElementSibling;
+  if(hint.style.display==='block'){ hint.style.display='none'; elem.textContent='Show Hint'; }
+  else{ hint.style.display='block'; elem.textContent='Hide Hint'; }
 }
 
-// Check student answer and save in real time
-function checkAnswer(btn) {
+function checkAnswer(btn){
   const parent = btn.parentElement;
   const input = parent.querySelector('.student-input');
-  const answerDiv = parent.querySelector('.answer');
-  const questionId = parent.dataset.id;
   const studentAnswer = input.value.trim();
-  const correct = studentAnswer.toLowerCase() === answerDiv.textContent.trim().toLowerCase();
+  const correctAnswer = questions[currentQuestion].answer_text.trim();
+  
+  studentAnswers[questions[currentQuestion].id] = studentAnswer;
 
-  // Mark completed if correct
-  let completed = correct ? 1 : 0;
-
-  // Save to database via AJAX
-  fetch('save_answer.php', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `question_id=${questionId}&student_answer=${encodeURIComponent(studentAnswer)}&completed=${completed}`
-  });
-
-  if(correct) {
-    alert('Correct! ✅');
-    parent.querySelector('.btn-complete').style.display = 'inline-block';
-    btn.disabled = true;
-  } else {
+  if(studentAnswer.toLowerCase()===correctAnswer.toLowerCase()){
+    btn.disabled=true;
+    parent.querySelector('.btn-next').style.display='inline-block';
+    triggerConfetti();
+    updateProgress();
+  }else{
     alert('Incorrect. Try again or use the hint.');
   }
+}
 
+function nextQuestion(){
+  currentQuestion++;
+  if(currentQuestion<questions.length){ showQuestion(); }
+  else{ alert('🎉 All questions completed!'); }
   updateProgress();
 }
 
-// Mark question complete manually
-function completeQuestion(btn) {
-  btn.parentElement.style.opacity = 0.6;
-  btn.disabled = true;
-  updateProgress();
-}
-
-// Update progress bar
-function updateProgress() {
-  const questionsDiv = document.querySelectorAll('.question-container .question');
-  const completed = Array.from(questionsDiv).filter(q => q.querySelector('.btn-complete').disabled || q.querySelector('.btn-complete').style.display === 'inline-block').length;
-  const progressPercent = questionsDiv.length ? Math.round(completed / questionsDiv.length * 100) : 0;
+function updateProgress(){
+  const percent = Math.round((currentQuestion / questions.length)*100);
   const bar = document.getElementById('progressBar');
-  bar.style.width = progressPercent + '%';
-  bar.textContent = progressPercent + '%';
+  bar.style.width = percent + '%';
+  bar.textContent = percent + '%';
 }
 
-// Download PDF with student answers
-function downloadSession() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-
-  const questionsDiv = document.querySelectorAll('.question-container .question');
-  let y = 10;
-  questionsDiv.forEach((q, i) => {
-    const questionText = q.querySelector('h3').textContent;
-    const studentAnswer = q.querySelector('.student-input').value || 'Not answered';
-    const correctAnswer = q.querySelector('.answer').textContent;
-    doc.text(`${questionText}`, 10, y);
-    y += 7;
-    doc.text(`Your Answer: ${studentAnswer}`, 10, y);
-    y += 7;
-    doc.text(`Correct Answer: ${correctAnswer}`, 10, y);
-    y += 10;
+function triggerConfetti(){
+  confetti({
+    particleCount: 100,
+    spread: 70,
+    origin: { y: 0.6 }
   });
-
-  doc.save("tutoring_session.pdf");
 }
 </script>
 </body>

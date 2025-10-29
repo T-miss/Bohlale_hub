@@ -1,7 +1,7 @@
 <?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
+session_start();
 
+// Database connection
 $host = "localhost";
 $user = "root";
 $pass = "";
@@ -10,47 +10,32 @@ $db   = "bohlale_hub";
 $conn = new mysqli($host, $user, $pass, $db);
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-// Mood documents and advice mapping
-$moodDocs = [
-    '😄' => 'docs/happy_guide.pdf',
-    '😐' => 'docs/neutral_guide.pdf',
-    '😔' => 'docs/sad_guide.pdf',
-    '😡' => 'docs/angry_guide.pdf'
-];
-
-$moodAdviceMap = [
-    '😄' => 'You seem happy! Keep maintaining your positive habits and share your happiness with others!',
-    '😐' => 'Feeling neutral is okay. Engage in activities you enjoy to boost your mood.',
-    '😔' => 'Feeling sad? Try walking, music, or talking to friends. Seek professional help if it persists.',
-    '😡' => 'Feeling angry? Practice deep breathing or mindfulness. Professional guidance can help if frequent.'
-];
-
-// Handle mood submission
-$uploadMsg = '';
-if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['log_mood'])){
-    $mood = isset($_POST['mood']) ? $conn->real_escape_string($_POST['mood']) : '';
-    $advice = isset($moodAdviceMap[$mood]) ? $conn->real_escape_string($moodAdviceMap[$mood]) : '';
-    $date = date('Y-m-d');
-
-    if($mood === ''){
-        $uploadMsg = "Please select a mood before submitting.";
-    } else {
-        $sql = "INSERT INTO mood_tracker (mood, entry_date, note) VALUES ('$mood', '$date', '$advice')";
-        if($conn->query($sql)){
-            $uploadMsg = "Mood logged successfully!";
-        } else {
-            $uploadMsg = "Error logging mood: " . $conn->error;
-        }
-    }
+// Insert new mood
+if(isset($_POST['saveMood'])) {
+  $mood = $conn->real_escape_string($_POST['mood']);
+  $note = $conn->real_escape_string($_POST['note']);
+  $entry_date = date("Y-m-d H:i:s");
+  $conn->query("INSERT INTO mood_tracker (mood, note, entry_date) VALUES ('$mood', '$note', '$entry_date')");
+  echo "<script>localStorage.setItem('moodSubmitted', 'true'); window.location.reload();</script>";
+  exit;
 }
 
-// Fetch past moods
-$sql = "SELECT * FROM mood_tracker ORDER BY entry_date DESC";
-$result = $conn->query($sql);
-$moodData = [];
-if($result){
-    while($row = $result->fetch_assoc()){
-        $moodData[] = $row;
+// Fetch saved moods
+$res2 = $conn->query("SELECT * FROM mood_tracker ORDER BY entry_date DESC");
+
+// Prepare data for chart (last 7 days)
+$chartData = [];
+for($i=6;$i>=0;$i--){
+    $day = date('Y-m-d', strtotime("-$i days"));
+    $chartData[$day] = ['Happy 😊'=>0,'Calm 😌'=>0,'Focused 🧠'=>0,'Anxious 😟'=>0,'Tired 😴'=>0];
+}
+$sql = "SELECT mood, DATE(entry_date) as day, COUNT(*) as cnt FROM mood_tracker 
+        WHERE DATE(entry_date) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) 
+        GROUP BY day, mood";
+$res = $conn->query($sql);
+if($res){
+    while($row=$res->fetch_assoc()){
+        if(isset($chartData[$row['day']][$row['mood']])) $chartData[$row['day']][$row['mood']] = (int)$row['cnt'];
     }
 }
 $conn->close();
@@ -60,155 +45,268 @@ $conn->close();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mood Tracking</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<title>Mood Tracker 💖</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  body { font-family: 'Inter', sans-serif; background: #f0f4f8; margin: 0; }
-  main { padding: 2rem; }
-  .features h2 { font-size: 2rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-  .features p { margin-bottom: 1rem; color: #555; }
+:root {
+  --bg:#E8DFF0;
+  --accent1:#ff2b7d;
+  --accent2:#b14b7f;
+  --deep:#2b0028;
+  --glass: rgba(255,255,255,0.14);
+}
 
-  /* Mood Buttons */
-  .mood-buttons { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-  .mood-buttons button { font-size: 1.5rem; padding: 0.5rem 1rem; border-radius: 12px; border: none; cursor: pointer; transition: 0.2s; }
-  .mood-buttons button:hover { transform: scale(1.1); }
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(180deg,var(--bg),#f7eef8 60%);
+  color: var(--deep);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
 
-  /* Mood History */
-  .mood-history { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 0.5rem; margin-top: 1rem; }
-  .mood-day { background: #fff; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; transition: transform 0.2s; cursor: pointer; }
-  .mood-day:hover { transform: translateY(-3px); }
+header {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(12px);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
 
-  /* Mood Trend Chart */
-  .trend-chart { margin-top: 2rem; background: #fff; padding: 1rem; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  .trend-chart h3 { margin-top: 0; color: #333; }
-  .trend-bar { height: 15px; background: #007bff; border-radius: 8px; margin: 0.3rem 0; transition: width 0.5s; color: #fff; text-align: right; padding-right: 5px; font-size: 0.8rem; }
+header h1 {
+  font-weight: 600;
+  font-size: 1.5rem;
+  color: var(--accent1);
+}
 
-  /* Mood Advice */
-  .mood-advice { margin-top: 1rem; background: #fff; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-  .mood-advice h4 { margin-top: 0; }
-  .mood-advice p { margin: 0.5rem 0; }
-  .mood-advice a { color: #007bff; text-decoration: none; }
-  .mood-advice a:hover { text-decoration: underline; }
+header a {
+  color: var(--deep);
+  text-decoration: none;
+  background: var(--accent2);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: 0.3s;
+}
+header a:hover {
+  background: var(--accent1);
+  color: white;
+}
+
+main {
+  flex: 1;
+  margin-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+}
+
+.container {
+  background: var(--glass);
+  border-radius: 20px;
+  backdrop-filter: blur(15px);
+  padding: 2rem;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+h2 {
+  color: var(--accent1);
+  margin-bottom: 1rem;
+}
+
+textarea, select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #ccc;
+  padding: 0.7rem;
+  font-family: 'Poppins';
+  margin-bottom: 1rem;
+  resize: none;
+}
+
+button {
+  background: var(--accent1);
+  color: white;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: 0.3s;
+}
+button:hover {
+  background: var(--accent2);
+  color: white;
+}
+
+.mood-history {
+  margin-top: 2rem;
+  width: 100%;
+}
+.mood-entry {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.7rem;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(10px);
+  color: var(--deep);
+  font-size: 0.9rem;
+  margin-top: auto;
+}
+
+canvas {
+  margin-top: 2rem;
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.07);
+}
+
+.emoji {
+  position: fixed;
+  font-size: 2rem;
+  opacity: 0;
+  animation: floatUp 2s ease forwards;
+  pointer-events: none;
+}
+
+@keyframes floatUp {
+  0% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-150px); opacity: 0; }
+}
 </style>
 </head>
 <body>
-<header class="site-header">
-  <div class="container header-inner">
-    <div class="brand"><div class="logo-mark"></div><span class="brand-title">Student Portal</span></div>
-  </div>
+
+<header>
+  <h1>Mood Tracker 💖</h1>
+  <a href="dashboard.php">Home</a>
 </header>
 
 <main>
-<section class="features">
-  <h2>Mood Tracking 😊</h2>
-  <p>Log your daily mood and monitor mental well-being trends over time.</p>
+  <div class="container">
+    <h2>Track Your Mood</h2>
+    <form method="POST">
+      <select name="mood" id="mood" required>
+        <option value="">Select Mood</option>
+        <option value="Happy 😊">Happy 😊</option>
+        <option value="Calm 😌">Calm 😌</option>
+        <option value="Focused 🧠">Focused 🧠</option>
+        <option value="Anxious 😟">Anxious 😟</option>
+        <option value="Tired 😴">Tired 😴</option>
+      </select>
+      <textarea name="note" placeholder="Write a short note..."></textarea>
+      <button type="submit" name="saveMood">Save Mood</button>
+    </form>
 
-  <?php if($uploadMsg) echo "<div style='margin-bottom:1rem;color:green;'>$uploadMsg</div>"; ?>
-
-  <!-- Mood Buttons Form -->
-  <form method="post" id="moodForm">
-    <input type="hidden" name="mood" id="selectedMood">
-    <input type="hidden" name="log_mood" value="1">
-    <input type="hidden" name="advice" id="moodAdviceInput">
-    <div class="mood-buttons">
-      <button type="button" value="😄">😄 Happy</button>
-      <button type="button" value="😐">😐 Neutral</button>
-      <button type="button" value="😔">😔 Sad</button>
-      <button type="button" value="😡">😡 Angry</button>
+    <div class="mood-history">
+      <h3>Recent Entries</h3>
+      <?php if($res2 && $res2->num_rows>0):
+          while($row = $res2->fetch_assoc()): ?>
+          <div class="mood-entry">
+            <strong><?php echo htmlspecialchars($row['mood']); ?></strong><br>
+            <small><?php echo htmlspecialchars($row['entry_date']); ?></small><br>
+            <p><?php echo htmlspecialchars($row['note']); ?></p>
+          </div>
+      <?php endwhile; else: ?>
+        <p>No moods tracked yet.</p>
+      <?php endif; ?>
     </div>
-  </form>
 
-  <!-- Mood History -->
-  <h3>Mood History</h3>
-  <div class="mood-history" id="moodHistory">
-    <?php foreach(array_reverse($moodData) as $entry):
-        $doc = isset($moodDocs[$entry['mood']]) ? $moodDocs[$entry['mood']] : '';
-    ?>
-      <div class="mood-day" title="<?= htmlspecialchars($entry['note']) ?>">
-        <strong><?= htmlspecialchars($entry['entry_date']) ?></strong><br>
-        <?= htmlspecialchars($entry['mood']) ?><br>
-        <?php if($doc): ?>
-          <a href="<?= $doc ?>" download style="font-size:0.8rem;">Download guide</a>
-        <?php endif; ?>
-      </div>
-    <?php endforeach; ?>
+    <canvas id="moodChart" width="400" height="200"></canvas>
+
+    <button id="downloadBtn">📘 Download Mood Guide</button>
   </div>
-
-  <!-- Mood Trend -->
-  <div class="trend-chart">
-    <h3>Mood Trend</h3>
-    <div id="trendBars">
-      <?php
-        $counts = ['😄'=>0,'😐'=>0,'😔'=>0,'😡'=>0];
-        foreach($moodData as $entry){
-          if(isset($counts[$entry['mood']])) $counts[$entry['mood']]++;
-        }
-        foreach($counts as $m=>$c):
-          $width = $c*20;
-          echo "<div class='trend-bar' style='width:{$width}px'>{$m} {$c}</div>";
-        endforeach;
-      ?>
-    </div>
-  </div>
-
-  <!-- Mood Advice -->
-  <div class="mood-advice" id="moodAdvice">
-    <h4>Advice & Resources</h4>
-    <p>Select a mood above to see advice and download resources for improving your well-being.</p>
-  </div>
-
-</section>
 </main>
 
-<footer class="site-footer">
-  <div class="container footer-bottom"><small>© <span id="year"></span> Student Portal</small></div>
+<footer>
+  © <span id="year"></span> Bohlale Hub — Reflect. Grow. Shine. 🌙
 </footer>
 
 <script>
 document.getElementById("year").textContent = new Date().getFullYear();
 
-// Mood advice messages and document links
-const moodAdvice = {
-  '😄': {
-    text: 'You seem happy! Keep maintaining your positive habits and share your happiness with others!',
-    doc: 'docs/happy_guide.pdf'
-  },
-  '😐': {
-    text: 'Feeling neutral is okay. Engage in activities you enjoy to boost your mood.',
-    doc: 'docs/neutral_guide.pdf'
-  },
-  '😔': {
-    text: 'Feeling sad? Try taking a short walk, listening to music, or talking to a friend. Seek professional help if it persists.',
-    doc: 'docs/sad_guide.pdf'
-  },
-  '😡': {
-    text: 'Feeling angry? Practice deep breathing, mindfulness, or take a short break. Professional guidance can help if frequent.',
-    doc: 'docs/angry_guide.pdf'
+// Emoji animation when mood submitted
+if(localStorage.getItem('moodSubmitted')) {
+  localStorage.removeItem('moodSubmitted');
+  const emojis = ['😊','😌','🧠','😟','😴'];
+  for(let i=0;i<10;i++){
+    const emoji = document.createElement('div');
+    emoji.classList.add('emoji');
+    emoji.innerText = emojis[Math.floor(Math.random()*emojis.length)];
+    emoji.style.left = Math.random()*window.innerWidth + 'px';
+    emoji.style.bottom = '20px';
+    emoji.style.animationDelay = (i*0.2)+'s';
+    document.body.appendChild(emoji);
+    setTimeout(()=>emoji.remove(),2000);
   }
-};
+}
 
-// Handle mood button clicks
-document.querySelectorAll('.mood-buttons button').forEach(btn=>{
-  btn.addEventListener('click', e=>{
-    const mood = btn.value;
-    document.getElementById('selectedMood').value = mood;
-    document.getElementById('moodAdviceInput').value = moodAdvice[mood].text;
-
-    // Show advice immediately
-    const adviceEl = document.getElementById('moodAdvice');
-    adviceEl.innerHTML = `<h4>Advice & Resources</h4>
-      <p>${moodAdvice[mood].text}</p>
-      <p>Download a guide: <a href="${moodAdvice[mood].doc}" download>Click here to download</a></p>
-      <p>Read more: <a href="https://www.mentalhealth.org.uk/publications/guide-to-good-mental-health" target="_blank">Mental Health Guide</a></p>`;
-
-    // Submit form to save in DB
-    document.getElementById('moodForm').submit();
+// Generate PDF
+document.getElementById('downloadBtn').addEventListener('click', function() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 10;
+  doc.setFontSize(18);
+  doc.text("My Mood Journal 💖", 10, y);
+  y += 10;
+  document.querySelectorAll('.mood-entry').forEach(entry => {
+    const text = entry.innerText.trim();
+    const lines = doc.splitTextToSize(text, 180);
+    doc.text(lines, 10, y);
+    y += lines.length * 7 + 5;
+    if(y > 270) { doc.addPage(); y = 10; }
   });
+  doc.save("My_Mood_Guide.pdf");
+});
+
+// Dynamic Chart Data
+const chartData = <?php echo json_encode($chartData); ?>;
+const labels = Object.keys(chartData);
+const moods = ['Happy 😊','Calm 😌','Focused 🧠','Anxious 😟','Tired 😴'];
+const datasets = moods.map((mood, i) => ({
+    label: mood,
+    data: labels.map(day => chartData[day][mood]),
+    backgroundColor: `rgba(255,43,125,0.3)`,
+    borderColor: `rgba(177,75,127,1)`,
+    fill: true,
+    tension: 0.3
+}));
+
+new Chart(document.getElementById('moodChart'), {
+  type: 'line',
+  data: { labels, datasets },
+  options: {
+    responsive:true,
+    plugins: {
+      legend: { position: 'top' }
+    },
+    scales: {
+      y: { beginAtZero: true, stepSize: 1 }
+    }
+  }
 });
 </script>
+
 </body>
 </html>
-
-
 

@@ -17,7 +17,7 @@ $siteTitle  = "Student Portal";
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
     <!-- Your CSS -->
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="style-news.css" />
 
     <style>
       /* Inline tweaks */
@@ -43,13 +43,16 @@ $siteTitle  = "Student Portal";
 </head>
 <body>
 
-    <!-- Header -->
-    <header class="site-header">
-        <div class="container header-inner">
-            <div class="brand">
-                <div class="logo-mark"></div>
-                <div class="brand-title"><?php echo $siteTitle; ?></div>
-            </div>
+   <!-- Header --> 
+<header class="site-header">
+  <div class="container header-inner">
+    <div class="brand">
+      <img src="https://image2url.com/images/1760714493363-e0fbca59-5907-44cc-b416-2406a998e9f3.jpeg" 
+           alt="Student Portal Logo" 
+           class="logo-mark">
+      
+      <span class="brand-title">BOHLALE HUB</span>
+    </div>
             <nav class="main-nav">
                 <a href="#" class="search-link" id="openSearch" aria-label="Search">
                     <i class="fas fa-search"></i>
@@ -78,6 +81,7 @@ $siteTitle  = "Student Portal";
             <a href="#">Settings</a>
             <a href="#"> About</a>
             <a href="#"> Contact </a>
+            <a href="logout.php">Logout</a>
         </div>
     </header>
 

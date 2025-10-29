@@ -12,7 +12,7 @@ if(!isset($_SESSION['user_id'])){
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Student Portal — Home</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="styyle.css">
 </head>
 <body>
 
